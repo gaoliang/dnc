@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+
+<div>
+    机床数据
+</div>
+<div id="machine_data">
+
+</div>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    const socket = io.connect('http://127.0.0.1:5000');
+
+    // 开机时， 主动向dnc服务器注册设备
+    socket.on('connect', function () {
+        socket.emit('register', 1001);
+    });
+
+    // 服务端请求上传设备中已有的程序清单
+    socket.on('need_program_list', function () {
+        socket.emit('upload_program_list', 1001, [{'name': 'program_1', 'id': 1, 'status': 1}, {
+            'name': 'program_2',
+            'id': 2,
+            'status': 2
+        }])
+    });
+
+    // 服务端请求上传设备中的某个程序的详细内容, 程序的结构尚未定义
+    socket.on('need_program', function (program_id) {
+        socket.emit('upload_program', program_id, {'unsettled_program_data1': 'xx'})
+    });
+
+
+    // 服务端请求删除设备中的某个程序,
+    socket.on('delete_program', function (program_id) {
+        console.log('delete program :', program_id)
+    });
+
+    // 接受来自服务器的下发程序， data结构尚未定义, 目前是 { program_id: number,  content: object }
+    socket.on('download', function (data) {
+        document.querySelector("#machine_data").innerHTML = data.program_id + data.content.toString()
+    });
+
+    // 接受来自服务器的关机指令
+    socket.on('shutdown', function () {
+        alert("关机！")
+    });
+
+    // 接受来自服务器的开机指令
+    socket.on('start', function () {
+        alert("开机！")
+    });
+
+
+    // 接受来自服务器的重置指令
+    socket.on('reset', function () {
+        alert("重置");
+    });
+
+    // 上报机床状态，status结构尚未定义, 可以每秒执行一次
+    // status的结构可以参照论文里的？ 需要机床端定义
+    /**
+     * 1) 机床工作模式、启动状态、急停开关状态、报警状态；
+     * 2) 绝对坐标、相对坐标、机械坐标、剩余移动量；
+     * 3) 主轴和进给轴的速度、倍率；
+     * 4) 主轴和进给轴的负载；
+     * 5) 实时报警, 类型、编号、内容及报警数量
+     * 6) 当前执行程序、当前行、下一行、当前刀号。
+     */
+    setInterval(function () {
+        socket.emit('refresh_status', 1001, {'status_a': 'xxx', 'status_b': 'xxx'})
+    }, 1000);
+
+
+</script>
+</body>
+</html>
