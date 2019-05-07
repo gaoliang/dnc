@@ -1,6 +1,5 @@
-import leancloud
-from flask import Flask, request, render_template, jsonify
-from flask_socketio import SocketIO, join_room, leave_room
+from flask import Flask, request, jsonify
+from flask_socketio import SocketIO
 from logzero import logger
 
 from model import Machine
@@ -10,12 +9,10 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
 
-# todo 利用room机制实现对机床的单独消息发送
-
 @socketio.on('register')
 def handle_register(device_id):
     """
-    注册设备
+    注册设备，并记录设备的room_id，以保证可以和设备进行单独通信
     :param device_id:
     :return: a json string
     """
@@ -24,15 +21,13 @@ def handle_register(device_id):
     query_list = query.find()
     if query_list:
         machine = query_list[0]
-        machine.set('ip', request.remote_addr)
-        machine.set('room_id', request.sid)
         logger.info('update device {} ip to {}'.format(device_id, request.remote_addr))
     else:
         machine = Machine()
-        machine.set('ip', request.remote_addr)
         machine.set('device_id', device_id)
-        machine.set('room_id', request.sid)
         logger.info('register new device: {} from {}'.format(device_id, request.remote_addr))
+    machine.set('ip', request.remote_addr)
+    machine.set('room_id', request.sid)
     machine.save()
     return {
         'success': True,
@@ -40,42 +35,35 @@ def handle_register(device_id):
     }
 
 
-@socketio.on('upload')
-def handle_upload(device_id, data):
-    """
-    设备主动上传数据到dnc
-    :param device_id
-    :param data, a dict with machine data
-    :return: a json string
-    """
-    print("收到来自device_id: {} 的数据， 内容为 {}".format(device_id, data))
-
-    return {
-        'success': True,
-        'message': 'receive data successfully'
-    }
-
-
 @socketio.on('refresh_status')
-def handle_refresh(device_id, data):
+def handle_refresh(data):
     """
     设备主动上报状态
-    :param device_id:
-    :param data: 具体结构需要定义
     :return:
     """
-    print("收到来自device_id: {} 的机床状态更新， 内容为 {}".format(device_id, data))
+    device_id = data.get('device_id')
+    status = device_id.get('status')
+    logger.info("收到来自device_id: {} 的机床状态更新， 内容为 {}".format(device_id, status))
+    Machine.query.equal_to('device_id', device_id)
+    machine = Machine.query.find()[0]
+    machine.set('status', status)
+    machine.save()
 
 
 @socketio.on('upload_program_list')
-def handle_upload_program_list(device_id, program_list):
+def handle_upload_program_list(data):
     """
     接收来自设备上报的设备程序列表
-    :param device_id:
-    :param program_list:
+    :param data: 包含program_list和device_id的json dict
     :return:
     """
-    print("收到来自device_id: {} 的程序列表， 内容为 {}".format(device_id, program_list))
+    device_id = data.get('device_id')
+    program_list = device_id.get('program_list')
+    logger.info("收到来自device_id: {} 的程序列表， 内容为 {}".format(device_id, program_list))
+    Machine.query.equal_to('device_id', device_id)
+    machine = Machine.query.find()[0]
+    machine.set('program_list', program_list)
+    machine.save()
 
 
 @app.route('/stop')
@@ -95,16 +83,16 @@ def download_test():
     return '', 200
 
 
-@app.route('/need_program_list')
-def get_program_list():
-    socketio.emit('need_program_list')
-    return "ok", 200
+@app.route('/need_program_list/<room_id>')
+def get_program_list(room_id):
+    socketio.emit('need_program_list', room_id=room_id)
+    return jsonify({'success': True})
 
 
 @app.route('/delete_program')
 def test_delete_program():
     socketio.emit('delete_program', 1001, callback=lambda x: print(x))
-    return 'ok', 200
+    return jsonify({'success': True})
 
 
 @app.route('/all_data')
@@ -116,7 +104,7 @@ def get_all_data():
 @app.route('/test_room/<room_id>')
 def send(room_id):
     socketio.emit('echo', 'hello, {}'.format(room_id), room=room_id)
-    return 'ok', 200
+    return jsonify({'success': True})
 
 
 if __name__ == '__main__':
