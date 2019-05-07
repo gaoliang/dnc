@@ -1,4 +1,5 @@
-from flask import Flask, request
+import leancloud
+from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO
 from logzero import logger
 
@@ -14,14 +15,22 @@ socketio = SocketIO(app)
 @socketio.on('register')
 def handle_register(device_id):
     """
-    注册新设备
+    注册设备
     :param device_id:
     :return: a json string
     """
-    logger.info('register device: {} from {}'.format(device_id, request.remote_addr))
-    machine = Machine()
-    machine.set('ip', request.remote_addr)
-    machine.set('device_id', device_id)
+    query = Machine.query
+    query.equal_to('device_id')
+    query_list = query.find()
+    if query_list:
+        machine = query_list[0]
+        machine.set('ip', request.remote_addr)
+        logger.info('update device {} ip to {}'.format(device_id, request.remote_addr))
+    else:
+        machine = Machine()
+        machine.set('ip', request.remote_addr)
+        machine.set('device_id', device_id)
+        logger.info('register new device: {} from {}'.format(device_id, request.remote_addr))
     machine.save()
     return {
         'success': True,
