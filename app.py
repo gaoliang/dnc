@@ -113,7 +113,7 @@ def get_all_data():
     return jsonify(query.find())
 
 
-@app.route('/test_room/{room_id}')
+@app.route('/test_room/<room_id>')
 def send(room_id):
     socketio.emit('echo', 'hello, {}'.format(room_id), room=room_id)
 
