@@ -7,7 +7,7 @@ sio = socketio.Client()
 # 1. 连接成功后自动注册设备，data为设备的device_id
 @sio.on('connect')
 def on_connect():
-    sio.emit('register', data='THIS_IS_DEVICE_ID')
+    sio.emit('register', data='THIS_IS_DEVICE_TWO')
 
 
 @sio.on('pong')
