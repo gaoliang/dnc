@@ -1,12 +1,19 @@
+import json
+
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from logzero import logger
 
-from model import Machine
+from flask_admin import Admin
+
+from model import Machine, MachineAdmin
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
+app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
+admin = Admin(app, name='dnc_admin', template_mode='bootstrap3')
+admin.add_view(MachineAdmin(Machine))
+socketio = SocketIO(app, engineio_logger=True)
 
 
 @socketio.on('register')
@@ -16,18 +23,13 @@ def handle_register(device_id):
     :param device_id:
     :return: a json string
     """
-    query = Machine.query
-    query.equal_to('device_id', device_id)
-    query_list = query.find()
-    if query_list:
-        machine = query_list[0]
-        logger.info('update device {} ip to {}'.format(device_id, request.remote_addr))
-    else:
+    machine = Machine.select().where(Machine.device_id == device_id).first()
+    if not machine:
         machine = Machine()
-        machine.set('device_id', device_id)
+        machine.device_id = device_id
         logger.info('register new device: {} from {}'.format(device_id, request.remote_addr))
-    machine.set('ip', request.remote_addr)
-    machine.set('room_id', request.sid)
+    machine.ip = request.remote_addr
+    machine.room_id = request.sid
     machine.save()
     return {
         'success': True,
@@ -44,10 +46,8 @@ def handle_refresh(data):
     device_id = data.get('device_id')
     status = data.get('status')
     logger.info("收到来自device_id: {} 的机床状态更新， 内容为 {}".format(device_id, status))
-    Machine.query.equal_to('device_id', device_id)
-    machine = Machine.query.find()[0]
-    machine.set('status', status)
-    machine.save()
+    update = Machine.update(status=json.dumps(status)).where(Machine.device_id == device_id)
+    update.execute()
 
 
 @socketio.on('upload_program_list')
@@ -60,27 +60,27 @@ def handle_upload_program_list(data):
     device_id = data.get('device_id')
     program_list = data.get('program_list')
     logger.info("收到来自device_id: {} 的程序列表， 内容为 {}".format(device_id, program_list))
-    Machine.query.equal_to('device_id', device_id)
-    machine = Machine.query.find()[0]
-    machine.set('program_list', program_list)
-    machine.save()
+    update = Machine.update(program_list=json.dumps(program_list)).where(Machine.device_id == device_id)
+    update.execute()
 
 
-@app.route('/stop')
-def stop():
-    socketio.stop()
-    return 'ok', 200
+# 下面是http接口，用于桌面端调用
+
+@app.route('/download_program', methods=['POST'])
+def download_program():
+    """
+    下载程序到设指定设备
+    :return:
+    """
+    data = request.get_json()
+    room_id = data.get('room_id')
+    program = data.get('program')
+    socketio.emit('download_program', program, room=room_id)
 
 
 @socketio.on('ping')
 def handle_ping():
     socketio.emit('pong')
-
-
-@app.route('/download')
-def download_test():
-    socketio.emit('download', {'program_id': 1001, 'content': {'data_section_1': 'xxxx'}})
-    return '', 200
 
 
 @app.route('/need_program_list/<room_id>')
@@ -89,28 +89,22 @@ def get_program_list(room_id):
     return jsonify({'success': True})
 
 
-@app.route('/need_program_list_by_device_id/<device_id>')
-def get_program_list_by_device_id(device_id):
-    room_id = Machine.get_room_id_by_device_id(device_id)
-    return get_program_list(room_id)
-
-
-@app.route('/delete_program')
-def test_delete_program():
-    socketio.emit('delete_program', 1001, callback=lambda x: print(x))
+@app.route('/delete_program/<room_id>/<program_id>')
+def test_delete_program(room_id, program_id):
+    socketio.emit('delete_program', program_id, room=room_id)
     return jsonify({'success': True})
-
-
-@app.route('/all_data')
-def get_all_data():
-    query = Machine.query
-    return jsonify(query.find())
 
 
 @app.route('/test_room/<room_id>')
 def send(room_id):
     socketio.emit('echo', 'hello, {}'.format(room_id), room=room_id)
     return jsonify({'success': True})
+
+
+@app.route('/stop')
+def stop():
+    socketio.stop()
+    return 'ok', 200
 
 
 if __name__ == '__main__':

@@ -1,14 +1,33 @@
-import leancloud
+import peewee as pw
+
+from peewee import SqliteDatabase, Model
+from flask_admin.contrib.peewee import ModelView
+
+DATABASE = 'machines.db'
+database = SqliteDatabase(DATABASE)
 
 
-# 可以用继承的方式定义 leancloud.Object 的子类
-class Machine(leancloud.Object):
-    @property
-    def room_id(self):
-        return self.get('room_id')
+class BaseModel(Model):
+    class Meta:
+        database = database
 
-    @classmethod
-    def get_room_id_by_device_id(cls, device_id):
-        cls.query.equal_to('device_id', device_id)
-        machine = cls.query.find()[0]
-        return machine.room_id
+
+class Machine(BaseModel):
+    id = pw.AutoField(primary_key=True)
+    device_id = pw.CharField(unique=True)
+    program_list = pw.TextField(null=True)
+    status = pw.TextField(null=True)
+    room_id = pw.CharField(max_length=100)
+    ip = pw.CharField(max_length=15)
+
+class MachineAdmin(ModelView):
+    pass
+
+
+def create_tables():
+    with database:
+        database.create_tables([Machine])
+
+
+if __name__ == "__main__":
+    create_tables()
