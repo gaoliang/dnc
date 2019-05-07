@@ -105,5 +105,11 @@ def test_delete_program():
     return 'ok', 200
 
 
+@app.route('/all_data')
+def get_all_data():
+    query = Machine.query
+    return jsonify(query.find())
+
+
 if __name__ == '__main__':
     socketio.run(app, debug=True)
