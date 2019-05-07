@@ -34,8 +34,8 @@ def on_connect():
 
 # 2. 侦听上传程序列表的需求， 监听到后发送程序列表，参数为json，内容为{device_id: string, program_list: []}
 @sio.on('need_program_list')
-def on_need_program_list():
-    sio.emit('send_program_list', {'device_id': machine.device_id, 'program_list': machine.program_list})
+def on_need_program_list(data):
+    sio.emit('upload_program_list', {'device_id': machine.device_id, 'program_list': machine.program_list})
 
 
 @sio.on('pong')

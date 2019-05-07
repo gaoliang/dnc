@@ -42,7 +42,7 @@ def handle_refresh(data):
     :return:
     """
     device_id = data.get('device_id')
-    status = device_id.get('status')
+    status = data.get('status')
     logger.info("收到来自device_id: {} 的机床状态更新， 内容为 {}".format(device_id, status))
     Machine.query.equal_to('device_id', device_id)
     machine = Machine.query.find()[0]
@@ -58,7 +58,7 @@ def handle_upload_program_list(data):
     :return:
     """
     device_id = data.get('device_id')
-    program_list = device_id.get('program_list')
+    program_list = data.get('program_list')
     logger.info("收到来自device_id: {} 的程序列表， 内容为 {}".format(device_id, program_list))
     Machine.query.equal_to('device_id', device_id)
     machine = Machine.query.find()[0]
@@ -87,6 +87,12 @@ def download_test():
 def get_program_list(room_id):
     socketio.emit('need_program_list', room_id=room_id)
     return jsonify({'success': True})
+
+
+@app.route('/need_program_list_by_device_id/<device_id>')
+def get_program_list_by_device_id(device_id):
+    room_id = Machine.get_room_id_by_device_id(device_id)
+    return get_program_list(room_id)
 
 
 @app.route('/delete_program')
