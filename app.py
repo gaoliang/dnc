@@ -116,6 +116,7 @@ def get_all_data():
 @app.route('/test_room/<room_id>')
 def send(room_id):
     socketio.emit('echo', 'hello, {}'.format(room_id), room=room_id)
+    return 'ok', 200
 
 
 if __name__ == '__main__':
