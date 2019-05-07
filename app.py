@@ -20,7 +20,7 @@ def handle_register(device_id):
     :return: a json string
     """
     query = Machine.query
-    query.equal_to('device_id')
+    query.equal_to('device_id', device_id)
     query_list = query.find()
     if query_list:
         machine = query_list[0]
