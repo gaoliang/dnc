@@ -1,6 +1,6 @@
 import leancloud
 from flask import Flask, request, render_template, jsonify
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room, leave_room
 from logzero import logger
 
 from model import Machine
@@ -25,11 +25,13 @@ def handle_register(device_id):
     if query_list:
         machine = query_list[0]
         machine.set('ip', request.remote_addr)
+        machine.set('room_id', request.sid)
         logger.info('update device {} ip to {}'.format(device_id, request.remote_addr))
     else:
         machine = Machine()
         machine.set('ip', request.remote_addr)
         machine.set('device_id', device_id)
+        machine.set('room_id', request.sid)
         logger.info('register new device: {} from {}'.format(device_id, request.remote_addr))
     machine.save()
     return {
@@ -109,6 +111,11 @@ def test_delete_program():
 def get_all_data():
     query = Machine.query
     return jsonify(query.find())
+
+
+@app.route('/test_room/{room_id}')
+def send(room_id):
+    socketio.emit('echo', 'hello, {}'.format(room_id), room=room_id)
 
 
 if __name__ == '__main__':

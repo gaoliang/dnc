@@ -15,6 +15,11 @@ def handle_pong(data):
     logger.info('pong! it works!')
 
 
+@sio.on('echo')
+def handle_echo(msg):
+    logger.info("echo: {}".format(msg))
+
+
 if __name__ == "__main__":
     sio.connect('http://dnc.leanapp.cn')
     logger.info('sending ping!')
