@@ -1,5 +1,8 @@
-from flask import Flask, render_template
+from flask import Flask, request
 from flask_socketio import SocketIO
+from logzero import logger
+
+from model import Machine
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -15,7 +18,11 @@ def handle_register(device_id):
     :param device_id:
     :return: a json string
     """
-    print('register device: {}'.format(device_id))
+    logger.info('register device: {} from {}'.format(device_id, request.remote_addr))
+    machine = Machine()
+    machine.set('ip', request.remote_addr)
+    machine.set('device_id', device_id)
+    machine.save()
     return {
         'success': True,
         'message': 'register successful!'
@@ -63,6 +70,12 @@ def handle_upload_program_list(device_id, program_list):
 @app.route('/stop')
 def stop():
     socketio.stop()
+    return 'ok', 200
+
+
+@socketio.on('ping')
+def handle_ping():
+    socketio.emit('pong')
 
 
 @app.route('/download')
