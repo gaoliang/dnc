@@ -101,6 +101,12 @@ def send(room_id):
     return jsonify({'success': True})
 
 
+@app.route('/pong')
+def pong():
+    socketio.emit('pong')
+    return jsonify({'success': True})
+
+
 @app.route('/stop')
 def stop():
     socketio.stop()

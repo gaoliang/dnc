@@ -72,13 +72,12 @@ def on_download_program(download_program):
 def handle_pong(data):
     logger.info('pong! it works!')
 
-
 @sio.on('echo')
 def handle_echo(msg):
     logger.info("echo: {}".format(msg))
 
 
 if __name__ == "__main__":
-    sio.connect('http://127.0.0.1:5000')
+    sio.connect('http://47.106.155.88:5000')
     logger.info('sending ping!')
     sio.emit('ping')
