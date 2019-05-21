@@ -26,3 +26,4 @@ websocket-client==0.56.0
 Werkzeug==0.15.2
 wtf-peewee==3.0.0
 WTForms==2.2.1
+flask-cors==3.0.7

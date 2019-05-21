@@ -2,6 +2,7 @@ import json
 
 from flask import Flask, request, jsonify
 from flask_admin import Admin
+from flask_cors import CORS
 from flask_socketio import SocketIO
 from logzero import logger
 from playhouse.shortcuts import model_to_dict, dict_to_model
@@ -14,7 +15,7 @@ app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 admin = Admin(app, name='dnc_admin', template_mode='bootstrap3')
 admin.add_view(MachineAdmin(Machine))
 socketio = SocketIO(app, engineio_logger=True)
-
+CORS(app)
 
 @socketio.on('register')
 def handle_register(device_id):
