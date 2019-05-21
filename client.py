@@ -30,10 +30,13 @@ machine = Machine()
 sio = socketio.Client(engineio_logger=True)
 
 
+def callback_register(data):
+    print(data)
+
 # 1. 连接成功后自动注册设备，参数为设备的device_id
 @sio.on('connect')
 def on_connect():
-    sio.emit('register', machine.device_id)
+    sio.emit('register', machine.device_id, callback=callback_register)
 
 
 # 2. 侦听上传程序列表的需求， 监听到后发送程序列表，参数为json，内容为{device_id: string, program_list: []}

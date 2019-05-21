@@ -1,10 +1,10 @@
 import json
 
 from flask import Flask, request, jsonify
+from flask_admin import Admin
 from flask_socketio import SocketIO
 from logzero import logger
-
-from flask_admin import Admin
+from playhouse.shortcuts import model_to_dict, dict_to_model
 
 from model import Machine, MachineAdmin
 
@@ -111,6 +111,12 @@ def pong():
 def stop():
     socketio.stop()
     return 'ok', 200
+
+
+@app.route('/list_machines')
+def list_machines():
+    machines = Machine.select()
+    return jsonify([model_to_dict(machine) for machine in machines])
 
 
 if __name__ == '__main__':
