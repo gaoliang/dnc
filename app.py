@@ -83,8 +83,10 @@ def download_program():
     """
     data = request.get_json()
     room_id = data.get('room_id')
-    program = data.get('program')
-    socketio.emit('download_program', program, room=room_id)
+    program_id = data.get('program_id')
+    program = Program.select().where(Program.id == program_id).get()
+    socketio.emit('download_program', model_to_dict(program), room=room_id)
+    return jsonify({'success': True})
 
 
 @socketio.on('ping')
