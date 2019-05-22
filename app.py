@@ -17,6 +17,7 @@ admin.add_view(MachineAdmin(Machine))
 socketio = SocketIO(app, engineio_logger=True)
 CORS(app)
 
+
 @socketio.on('register')
 def handle_register(device_id):
     """
@@ -88,6 +89,12 @@ def handle_ping():
 def get_program_list(room_id):
     socketio.emit('need_program_list', room_id=room_id)
     return jsonify({'success': True})
+
+
+@app.route('/get_machine_by_room_id/<room_id>')
+def get_machine_by_room_id(room_id):
+    machine = Machine.select().where(Machine.room_id == room_id).get()
+    return jsonify(model_to_dict(machine))
 
 
 @app.route('/delete_program/<room_id>/<program_id>')

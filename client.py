@@ -9,7 +9,7 @@ class Machine:
 
     def __init__(self):
         # 每个设备独一无二的ID
-        self.device_id = 'Machine_A'
+        self.device_id = 'ttt'
 
         # 机床程序列表例子
         self.program_list = [
