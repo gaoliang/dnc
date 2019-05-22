@@ -7,7 +7,7 @@ from flask_socketio import SocketIO
 from logzero import logger
 from playhouse.shortcuts import model_to_dict, dict_to_model
 
-from model import Machine, MachineAdmin
+from model import Machine, MachineAdmin, Program
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -64,6 +64,13 @@ def handle_upload_program_list(data):
     logger.info("收到来自device_id: {} 的程序列表， 内容为 {}".format(device_id, program_list))
     update = Machine.update(program_list=json.dumps(program_list)).where(Machine.device_id == device_id)
     update.execute()
+
+
+@socketio.on('disconnect')
+def handle_disconnect(data):
+    room_id = request.sid
+    machine = Machine.select().where(Machine.room_id == room_id).get()
+    machine.status
 
 
 # 下面是http接口，用于桌面端调用
@@ -125,6 +132,24 @@ def stop():
 def list_machines():
     machines = Machine.select()
     return jsonify([model_to_dict(machine) for machine in machines])
+
+
+@app.route('/list_programs')
+def list_programs():
+    programs = Program.select()
+    return jsonify([model_to_dict(program) for program in programs])
+
+
+@app.route('/delete_program/<program_id>')
+def delete_program(program_id):
+    Program.delete_by_id(program_id).execute()
+    return jsonify({'success': True})
+
+
+@app.route('/add_program', methods=['POST'])
+def add_program():
+    program = dict_to_model(Program, request.json)
+    program.save()
 
 
 if __name__ == '__main__':

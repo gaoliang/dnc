@@ -20,13 +20,21 @@ class Machine(BaseModel):
     room_id = pw.CharField(max_length=100)
     ip = pw.CharField(max_length=15)
 
+
 class MachineAdmin(ModelView):
     pass
 
 
+class Program(BaseModel):
+    id = pw.AutoField(primary_key=True)
+    name = pw.CharField(max_length=200)
+    desc = pw.CharField(max_length=200)
+    content = pw.TextField()
+
+
 def create_tables():
     with database:
-        database.create_tables([Machine])
+        database.create_tables([Program])
 
 
 if __name__ == "__main__":
