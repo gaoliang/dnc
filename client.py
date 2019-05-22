@@ -65,6 +65,8 @@ def on_download_program(download_program):
         # 有同id的程序在，则更新
         if program['id'] == program_id:
             program['content'] = download_program['content']
+            program['name'] = download_program['name']
+            program['desc'] = download_program['desc']
             sio.emit('upload_program_list', machine.program_list)
             return
     # 没有则新建
