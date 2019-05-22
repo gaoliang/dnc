@@ -150,6 +150,7 @@ def delete_program(program_id):
 def add_program():
     program = dict_to_model(Program, request.json)
     program.save()
+    return jsonify({'success': True})
 
 
 if __name__ == '__main__':
