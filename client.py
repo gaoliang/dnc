@@ -1,5 +1,9 @@
+import json
+
 import socketio
 from logzero import logger
+
+from utils import decrypt
 
 
 class Machine:
@@ -17,6 +21,10 @@ class Machine:
             {'id': 2, 'name': 'program_B', 'desc': 'this is program B', 'content': 'content B'},
         ]
 
+        # 加密配置
+        self.key = '1234123412ABCDEF'
+        self.iv = 'ABCDEF1234123412'
+
         # 机床状态例子
         self.status = {
             'power_on': True,
@@ -33,6 +41,7 @@ sio = socketio.Client(engineio_logger=True)
 def callback_register(data):
     print(data)
 
+
 # 1. 连接成功后自动注册设备，参数为设备的device_id
 @sio.on('connect')
 def on_connect():
@@ -42,6 +51,7 @@ def on_connect():
 # 2. 侦听上传程序列表的需求， 监听到后发送程序列表，参数为json，内容为{device_id: string, program_list: []}
 @sio.on('need_program_list')
 def on_need_program_list(data):
+    logger.info("server need program list! uploading program list")
     sio.emit('upload_program_list', {'device_id': machine.device_id, 'program_list': machine.program_list})
 
 
@@ -59,7 +69,10 @@ def on_delete_program(program_id):
 
 # 4. 监听下发程序的需求，触发后自动保存程序到当前程序列表，如果id相同则更新
 @sio.on('download_program')
-def on_download_program(download_program):
+def on_download_program(data):
+    encrypted_data = data.get('encrypted_data')
+    download_program = json.loads(decrypt(machine.key, machine.iv, encrypted_data))
+    logger.info('download program : {}'.format(download_program))
     program_id = download_program.get('id')
     for program in machine.program_list:
         # 有同id的程序在，则更新
@@ -69,13 +82,13 @@ def on_download_program(download_program):
             program['desc'] = download_program['desc']
             sio.emit('upload_program_list', machine.program_list)
             return
-    # 没有则新建
     machine.program_list.extend(download_program)
 
 
 @sio.on('pong')
 def handle_pong(data):
     logger.info('pong! it works!')
+
 
 @sio.on('echo')
 def handle_echo(msg):

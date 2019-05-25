@@ -8,6 +8,7 @@ from logzero import logger
 from playhouse.shortcuts import model_to_dict, dict_to_model
 
 from model import Machine, MachineAdmin, Program
+from utils import encrypt
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -84,8 +85,12 @@ def download_program():
     data = request.get_json()
     room_id = data.get('room_id')
     program_id = data.get('program_id')
+    key = data.get('key')
+    iv = data.get('iv')
     program = Program.select().where(Program.id == program_id).get()
-    socketio.emit('download_program', model_to_dict(program), room=room_id)
+    program_data = json.dumps(model_to_dict(program))
+    encrypted_data = encrypt(key, iv, program_data)
+    socketio.emit('download_program', {'encrypted_data': encrypted_data}, room=room_id)
     return jsonify({'success': True})
 
 
@@ -96,7 +101,7 @@ def handle_ping():
 
 @app.route('/need_program_list/<room_id>')
 def get_program_list(room_id):
-    socketio.emit('need_program_list', room_id=room_id)
+    socketio.emit('need_program_list', room=room_id)
     return jsonify({'success': True})
 
 
